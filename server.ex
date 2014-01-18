@@ -8,32 +8,35 @@ defmodule Tcpserver do
 
   defp do_listen(listen_socket) do
     {:ok, socket} = :gen_tcp.accept(listen_socket)
-    spawn(fn() -> do_server(socket) end)
+    spawn(fn() -> ConnectionManager.handle_request(socket) end)
     do_listen(listen_socket)
   end
+end
 
-  defp do_server(socket) do
+defmodule ConnectionManager do
+  def handle_request(socket) do
+    Logger.log("Received connection")
+    spawn(fn() -> receive_data(socket) end)
+    respond(socket, "HTTP/1.1 200 OK\nContent-Type: text;\n\ntest")
+  end
+
+  def receive_data(socket) do
     case :gen_tcp.recv(socket, 0) do
       {:ok, data} ->
         Logger.log(data)
-        responder = spawn(fn() -> do_respond(socket) end)
-        send(responder, {:ok, "HTTP/1.1 200 OK\nContent-Type: text;\n\ntest"})
-        #:timer.send_interval(10, responder, {:ok, "test\n"})
-        do_server(socket)
-
+        receive_data(socket)
       {:error, :closed} -> :ok
     end
   end
 
-  defp do_respond(socket) do
-    receive do
-      {:ok, response} ->
-        :gen_tcp.send(socket, "#{response}\n")
-        :gen_tcp.close(socket)
-        Logger.log(response)
-        do_respond(socket)
-    end
+  defp respond(socket, data) do
+    :gen_tcp.send(socket, "#{data}\n")
+    :gen_tcp.close(socket)
+    Logger.log("Responded: #{data}")
   end
+end
+
+defmodule RequestParser do
 end
 
 defmodule Logger do
