@@ -32,11 +32,13 @@ defmodule ConnectionManager do
   end
 
   defp respond_with_file(socket, {:ok, file_data}) do
+    Logger.log("Responded 200 OK")
     :gen_tcp.send(socket, "HTTP/1.1 200 OK\nContent-Type: text;\n\n#{file_data}")
   end
 
   defp respond_with_file(socket, {:error, _}) do
-    :gen_tcp.send(socket, "HTTP/1.1 404 OK\nContent-Type: text;\n\nFile not found")
+    Logger.log("Responded 404 Not Found")
+    :gen_tcp.send(socket, "HTTP/1.1 404 Not Found\nContent-Type: text;\n\nFile not found")
   end
 end
 
