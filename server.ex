@@ -16,10 +16,10 @@ end
 defmodule ConnectionManager do
   def handle_request(socket) do
     Logger.log("Received connection")
-    handle_data(socket)
+    wait_for_data(socket)
   end
 
-  def handle_data(socket) do
+  def wait_for_data(socket) do
     case :gen_tcp.recv(socket, 0) do
       {:ok, data} ->
         parsed_request = RequestParser.parse(data)
