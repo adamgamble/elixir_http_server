@@ -16,12 +16,13 @@ end
 defmodule ConnectionManager do
   def handle_request(socket) do
     Logger.log("Received connection")
-    spawn(fn() -> handle_data(socket) end)
+    handle_data(socket)
   end
 
   def handle_data(socket) do
     case :gen_tcp.recv(socket, 0) do
       {:ok, data} ->
+        Logger.log(data)
         parsed_request = RequestParser.parse(data)
         loaded_file = FileManager.load_file(parsed_request)
         respond_with_file(socket, loaded_file)
@@ -58,9 +59,8 @@ end
 defmodule RequestParser do
   def parse(request) do
     bitstring_request = list_to_bitstring(request)
-    # I realize this sucks, I suck at head/tail now. Needs recursion I guess?
-    [path_line | _] = String.split(bitstring_request, "\n")
-    [_ | [path_string | _] ] = String.split(path_line, " ")
+    regex_captures = Regex.named_captures(%r/(GET|POST) (?<path>.*) .*/g, bitstring_request)
+    path_string = Keyword.get regex_captures, :path
     {:ok, path_string}
   end
 end
