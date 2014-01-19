@@ -2,8 +2,8 @@ defmodule Tcpserver do
   def listen(port) do
     tcp_options = [:list, {:packet, 0}, {:active, false}, {:reuseaddr, true}]
     {:ok, listen_socket} = :gen_tcp.listen(port, tcp_options)
-    do_listen(listen_socket)
     Logger.log("Listening on #{port}")
+    do_listen(listen_socket)
   end
 
   defp do_listen(listen_socket) do
@@ -22,7 +22,6 @@ defmodule ConnectionManager do
   def handle_data(socket) do
     case :gen_tcp.recv(socket, 0) do
       {:ok, data} ->
-        Logger.log(data)
         parsed_request = RequestParser.parse(data)
         loaded_file = FileManager.load_file(parsed_request)
         respond_with_file(socket, loaded_file)
@@ -44,7 +43,7 @@ defmodule ConnectionManager do
 end
 
 defmodule FileManager do
-  def load_file({:ok, path}) do
+  def load_file({:ok, path, verb}) do
     case path do
       "/" ->
         Logger.log("Loading root")
@@ -59,9 +58,10 @@ end
 defmodule RequestParser do
   def parse(request) do
     bitstring_request = list_to_bitstring(request)
-    regex_captures = Regex.named_captures(%r/(GET|POST) (?<path>.*) .*/g, bitstring_request)
-    path_string = Keyword.get regex_captures, :path
-    {:ok, path_string}
+    regex_captures = Regex.named_captures(%r/(?<verb>.*) (?<path>.*) .*/g, bitstring_request)
+    path = Keyword.get regex_captures, :path
+    verb = Keyword.get regex_captures, :verb
+    {:ok, path, verb}
   end
 end
 
